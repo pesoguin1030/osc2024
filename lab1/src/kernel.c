@@ -1,9 +1,14 @@
 #include "mini_uart.h"
 #include "shell.h"
+#include "mailbox.h"
 
 void kernel_main()
 {
-	// set up serial console
+	// print board revision and ARM memory
+    get_board_revision();
+    get_ARM_memory();
+    
+    // set up serial console
     uart_init();
     
     // say hello
