@@ -22,6 +22,8 @@ void command_help(){
     uart_puts("\n");
     uart_puts("help      : print this help menu\n");
     uart_puts("hello     : print Hello World!\n");
+    uart_puts("reboot    : reboot the device\n");
+    uart_puts("info      : print info of board revision and ARM memory\n");
     uart_puts("\n");
 }
 
@@ -30,4 +32,18 @@ void command_not_found (char * s)
     uart_puts("Error: command ");
     uart_puts(s);
     uart_puts(" not found, try <help>\n");
+}
+
+void command_reboot ()
+{
+    uart_puts("Start Rebooting...\n");
+
+    put32(PM_WDOG, PM_PASSWORD | 0x20);
+    put32(PM_RSTC, PM_PASSWORD | 100);
+    
+}
+void command_info()
+{
+    get_board_revision();
+    get_ARM_memory();
 }
