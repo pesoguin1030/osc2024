@@ -1,24 +1,21 @@
-#include "utils.h"
 #include "command.h"
-#include "mini_uart.h"
 #include "mailbox.h"
+#include "mini_uart.h"
 #include "string.h"
+#include "utils.h"
 
-void input_buffer_overflow_message ( char cmd[] )
-{
+
+void input_buffer_overflow_message(char cmd[]) {
     uart_puts("The following command: \"");
     uart_puts(cmd);
     uart_puts("\"... is too long to process.\n");
 
-    uart_puts("The maximum length of input is 64.");
+    uart_puts("The maximum length of input is 64.\n");
 }
 
+void command_hello() { uart_puts("Hello, World!\n"); }
 
-void command_hello(){
-    uart_puts("Hello, World!\n");
-}
-
-void command_help(){
+void command_help() {
     uart_puts("\n");
     uart_puts("help      : print this help menu\n");
     uart_puts("hello     : print Hello World!\n");
@@ -27,23 +24,19 @@ void command_help(){
     uart_puts("\n");
 }
 
-void command_not_found (char * s) 
-{
+void command_not_found(char* s) {
     uart_puts("Error: command ");
     uart_puts(s);
     uart_puts(" not found, try <help>\n");
 }
 
-void command_reboot ()
-{
-    uart_puts("Start Rebooting...\n");
-
+void command_reboot() {
+    uart_puts("Start Rebooting...\r\n");
+    delay(1000);   // Delay to ensure message is received is  fully transmitted
     put32(PM_WDOG, PM_PASSWORD | 0x20);
     put32(PM_RSTC, PM_PASSWORD | 100);
-    
 }
-void command_info()
-{
+void command_info() {
     get_board_revision();
     get_ARM_memory();
 }

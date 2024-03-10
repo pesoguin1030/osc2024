@@ -3,90 +3,86 @@
 #include "mini_uart.h"
 #include "string.h"
 
-void shell_start () 
-{
+void shell_start() {
     int buffer_counter = 0;
     char input_char;
     char buffer[MAX_BUFFER_LEN];
     enum SPECIAL_CHARACTER input_parse;
 
-    strset (buffer, 0, MAX_BUFFER_LEN);   
+    // Re-initialize UART after reboot
+    uart_init();
+    uart_flush();
+
+    strset(buffer, 0, MAX_BUFFER_LEN);
 
     // new line head
     uart_puts("# ");
 
     // read input
-    while(1)
-    {
+    while (1) {
         input_char = uart_getc();
 
-        input_parse = parse ( input_char );
+        input_parse = parse(input_char);
 
-        command_controller ( input_parse, input_char, buffer, &buffer_counter);
+        command_controller(input_parse, input_char, buffer, &buffer_counter);
     }
 }
 
-enum SPECIAL_CHARACTER parse ( char c )
-{
-    if ( !(c < 128 && c >= 0) )
+enum SPECIAL_CHARACTER parse(char c) {
+    if (!(c < 128 && c >= 0))
         return UNKNOWN;
 
-    if ( c == BACK_SPACE )
+    if (c == BACK_SPACE)
         return BACK_SPACE;
-    else if ( c == LINE_FEED || c == CARRIAGE_RETURN )
+    else if (c == LINE_FEED || c == CARRIAGE_RETURN)
         return NEW_LINE;
     else
-        return REGULAR_INPUT;    
+        return REGULAR_INPUT;
 }
 
-void command_controller ( enum SPECIAL_CHARACTER input_parse, char c, char buffer[], int * counter )
-{
-    if ( input_parse == UNKNOWN )
+void command_controller(enum SPECIAL_CHARACTER input_parse, char c, char buffer[], int* counter) {
+    if (input_parse == UNKNOWN)
         return;
-    
+
     // Special key
-    if ( input_parse == BACK_SPACE )
-    {
-        if (  (*counter) > 0 )
-            (*counter) --;
-        
-        uart_putc(c);
-        uart_putc(' ');
-        uart_putc(c);
-    }
-    else if ( input_parse == NEW_LINE )
-    {
+    if (input_parse == BACK_SPACE) {
+        if ((*counter) > 0) {
+            (*counter)--;
+            uart_putc('\b');   // Move the cursor back
+            uart_putc(' ');    // Erase the character on the terminal
+            uart_putc('\b');   // Move the cursor back again
+        }
+    } else if (input_parse == NEW_LINE) {
         uart_putc(c);
 
-        if ( (*counter) == MAX_BUFFER_LEN ) 
-        {
+        if ((*counter) == MAX_BUFFER_LEN) {
             input_buffer_overflow_message(buffer);
-        }
-        else 
-        {
+        } else {
             buffer[(*counter)] = '\0';
 
-            if      ( !strcmp(buffer, "help"        ) ) command_help();
-            else if ( !strcmp(buffer, "hello"       ) ) command_hello();
-            else if ( !strcmp(buffer, "reboot"      ) ) command_reboot();
-            else if ( !strcmp(buffer, "info"        ) ) command_info();
-            else                                        command_not_found(buffer);
+            if (!strcmp(buffer, "help"))
+                command_help();
+            else if (!strcmp(buffer, "hello"))
+                command_hello();
+            else if (!strcmp(buffer, "reboot"))
+                command_reboot();
+            else if (!strcmp(buffer, "info"))
+                command_info();
+            else
+                command_not_found(buffer);
         }
-            
+
         (*counter) = 0;
-        strset (buffer, 0, MAX_BUFFER_LEN); 
+        strset(buffer, 0, MAX_BUFFER_LEN);
 
         // new line head;
         uart_puts("# ");
-    }
-    else if ( input_parse == REGULAR_INPUT )
-    {
+    } else if (input_parse == REGULAR_INPUT) {
         uart_putc(c);
 
-        if ( *counter < MAX_BUFFER_LEN)
-            {
-                buffer[*counter] = c;
-                (*counter) ++;
-            }
+        if (*counter < MAX_BUFFER_LEN) {
+            buffer[*counter] = c;
+            (*counter)++;
+        }
     }
 }
