@@ -23,7 +23,7 @@ void prepare_mbox_message(unsigned int tag, unsigned int buffer_size) {
     // tags begin
     mbox[2] = tag;   // tag identifier
     mbox[3] = 8;     // maximum of request and response value buffer's length.
-    mbox[4] = 8;
+    mbox[4] = 8;   // tag request code 
     mbox[5] = 0;   // value buffer
     mbox[6] = 0;   // value buffer
     // tags end
@@ -43,7 +43,7 @@ int mbox_call(unsigned char ch) {
             break;
     }
     /* write the address of our message to the mailbox with channel identifier */
-    *MBOX_WRITE = r;
+    *MBOX_WRITE = r; // read channel
     /* now wait for the response */
     while (1) {
         /* is there a response? */

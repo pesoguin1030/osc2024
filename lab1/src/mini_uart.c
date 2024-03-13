@@ -21,8 +21,7 @@ void uart_init() {
     put32(GPPUDCLK0, 0);
 
     put32(AUX_ENABLES, 1);   // Enable mini uart (this also enables access to its registers)
-    put32(AUX_MU_CNTL_REG,
-          0);   // Disable auto flow control and disable receiver and transmitter (for now)
+    put32(AUX_MU_CNTL_REG, 0);   // Disable auto flow control and disable receiver and transmitter (for now)
     put32(AUX_MU_IER_REG, 0);      // Disable receive and transmit interrupts
     put32(AUX_MU_LCR_REG, 3);      // Enable 8 bit mode
     put32(AUX_MU_MCR_REG, 0);      // Set RTS line to be always high
@@ -34,7 +33,8 @@ void uart_init() {
 void uart_putc(char c) {
     /* wait until we can send */
     while (1) {
-        if (get32(AUX_MU_LSR_REG) & 0x20)
+        if (get32(AUX_MU_LSR_REG) & 0x20) //the 6th bit of the LSR indicates the Transmit Holding Register Empty (THRE) status. 
+										//If this bit is 1, it means that the UART is ready to accept a new character for transmission
             break;
     }
     /* write the character to the buffer */
@@ -55,7 +55,8 @@ char uart_getc() {
 
     /* wait until something is in the buffer */
     while (1) {
-        if (get32(AUX_MU_LSR_REG) & 0x01)
+        if (get32(AUX_MU_LSR_REG) & 0x01) // the 0th bit of the LSR indicates the Data Ready (DR) status. 
+										//If this bit is 1, it means that there is data available to be read from the receiver buffer
             break;
     }
 
