@@ -34,7 +34,7 @@ void prepare_mbox_message(unsigned int tag, unsigned int buffer_size) {
  * Make a mailbox call to specified channel. Returns 0 on failure, non-zero on success
  */
 int mbox_call(unsigned char ch) {
-    /* clear the lowest four bits, ensure the address is 16 bits aligned*/
+    /* clear the lowest four bits, ensure the address is 16 bits aligned, Combine the message address (upper 28 bits) with channel number (lower 4 bits)*/
     unsigned int r = (((unsigned int) ((unsigned long) &mbox) & ~0xF) | (ch & 0xF));
     /* check MBOX_STATUS register is full(MBOX_FULL) or not, if full then loop waiting until we can
      * write to the mailbox */
