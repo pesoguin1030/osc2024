@@ -75,6 +75,8 @@ void command_controller(enum SPECIAL_CHARACTER input_parse, char c, char buffer[
                 command_reboot();
             else if (!strcmp(buffer, "info"))
                 command_info();
+            else if (!strcmp(buffer, "clear"))
+                command_clear();
             else
                 command_not_found(buffer);
         }

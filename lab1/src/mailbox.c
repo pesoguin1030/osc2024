@@ -6,9 +6,9 @@
 
 
 #define VIDEOCORE_MBOX (PBASE + 0x0000B880)
-#define MBOX_READ      ((volatile unsigned int*) (VIDEOCORE_MBOX + 0x0))
-#define MBOX_STATUS    ((volatile unsigned int*) (VIDEOCORE_MBOX + 0x18))
-#define MBOX_WRITE     ((volatile unsigned int*) (VIDEOCORE_MBOX + 0x20))
+#define MBOX_READ      ((volatile unsigned int*) (VIDEOCORE_MBOX + 0x0))  //Mailbox 0 read register
+#define MBOX_STATUS    ((volatile unsigned int*) (VIDEOCORE_MBOX + 0x18)) //Mailbox 0 status register
+#define MBOX_WRITE     ((volatile unsigned int*) (VIDEOCORE_MBOX + 0x20)) //Mailbox 1 write register
 #define MBOX_RESPONSE  0x80000000   // response code: request successful
 #define MBOX_FULL      0x80000000
 #define MBOX_EMPTY     0x40000000
@@ -34,27 +34,28 @@ void prepare_mbox_message(unsigned int tag, unsigned int buffer_size) {
  * Make a mailbox call to specified channel. Returns 0 on failure, non-zero on success
  */
 int mbox_call(unsigned char ch) {
-    /* clear the lowest four bits, ensure the address is 16 bits aligned, Combine the message address (upper 28 bits) with channel number (lower 4 bits)*/
+    /* 1. clear the lowest four bits, ensure the address is 16 bits aligned, Combine the message address (upper 28 bits) with channel number (lower 4 bits)*/
     unsigned int r = (((unsigned int) ((unsigned long) &mbox) & ~0xF) | (ch & 0xF));
-    /* check MBOX_STATUS register is full(MBOX_FULL) or not, if full then loop waiting until we can
-     * write to the mailbox */
+    
+    /* 2. Check if Mailbox 0 status register’s full flag is set ,write to the mailbox */
     while (1) {
-        if (!(*MBOX_STATUS & MBOX_FULL))
+        if (!(*MBOX_STATUS & MBOX_FULL)) //If not, then you can write to Mailbox 1 Read/Write register.
             break;
     }
     /* write the address of our message to the mailbox with channel identifier */
-    *MBOX_WRITE = r; // read channel
+    *MBOX_WRITE = r; // 3. Write to Mailbox 1 Write register.
     /* now wait for the response */
     while (1) {
         /* is there a response? */
         while (1) {
-            if (!(*MBOX_STATUS & MBOX_EMPTY))
+            if (!(*MBOX_STATUS & MBOX_EMPTY)) // 4. Check if Mailbox 0 status register’s empty flag is set.
                 break;
         }
-        /* use MBOX_READ register to check if it is a response to our message */
+        //5. read from Mailbox 0 Read register.
         if (r == *MBOX_READ)
-            /* check if it is a valid successful response */
+            /* use MBOX_READ register to check if it is a response to our message, check if it is a valid successful response */
             return mbox[1] == MBOX_RESPONSE;
+            // 6. Check if the value is the same as you wrote in step 1,
     }
     return 0;
 }
@@ -62,7 +63,7 @@ int mbox_call(unsigned char ch) {
 void get_board_revision() {
     prepare_mbox_message(GET_BOARD_REVISION, 8 * 4);   // Prepare message for board revision
 
-    if (mbox_call(MBOX_CH_PROP)) {
+    if (mbox_call(MBOX_CH_PROP)) { //ch8
         uart_puts("My revision is: ");
         uart_hex(mbox[5]);
         uart_puts("\n");

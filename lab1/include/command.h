@@ -12,5 +12,6 @@ void command_hello();
 void command_not_found(char*);
 void command_reboot();
 void command_info();
+void command_clear();
 
 #endif

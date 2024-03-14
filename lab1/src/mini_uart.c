@@ -23,7 +23,7 @@ void uart_init() {
     put32(AUX_MU_CNTL_REG, 0);   // Disable transmitter and receiver during configuration
     put32(AUX_MU_IER_REG, 0);      // Disable receive and transmit interrupts, since we don't need it currently
     put32(AUX_MU_LCR_REG, 3);      // Enable 8 bit mode, set the data size to 8 bit
-    put32(AUX_MU_MCR_REG, 0);      // Don’t need auto flow control.
+    put32(AUX_MU_MCR_REG, 0);      // Don’t need auto flow control. RTS/CTS
     put32(AUX_MU_BAUD_REG, 270);   // Set baud rate to 115200
     //put32(AUX_MU_IIR_REG, 6);   // No FIFO
     put32(AUX_MU_CNTL_REG, 3);   // Finally, enable transmitter and receiver
