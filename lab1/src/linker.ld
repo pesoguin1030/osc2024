@@ -1,5 +1,6 @@
 SECTIONS
 {
+	. = 0x80000; 			 /* ensure the correct address*/
 	.text.boot : { *(.text.boot) }
 	.text : { *(.text) } 	 /*code*/
 	.rodata : { *(.rodata) } /* read-only data, like constants */
