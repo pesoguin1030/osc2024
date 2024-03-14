@@ -21,7 +21,7 @@ void prepare_mbox_message(unsigned int tag, unsigned int buffer_size) {
     mbox[0] = buffer_size;    // Total message size in bytes
     mbox[1] = MBOX_REQUEST;   // This is a request message
     // tags begin
-    mbox[2] = tag;   // tag identifier
+    mbox[2] = tag;   // tag identifier (get_board_revision or get_ARM_memory)
     mbox[3] = 8;     // maximum of request and response value buffer's length.
     mbox[4] = 8;   // tag request code 
     mbox[5] = 0;   // value buffer

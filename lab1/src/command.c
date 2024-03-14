@@ -32,9 +32,8 @@ void command_not_found(char* s) {
 
 void command_reboot() {
     uart_puts("Start Rebooting...\r\n");
-    delay(1000);   // Delay to ensure message is received is  fully transmitted
-    put32(PM_WDOG, PM_PASSWORD | 0x20);
-    put32(PM_RSTC, PM_PASSWORD | 100);
+    put32(PM_RSTC, PM_PASSWORD | 0x20); // full reset 
+    put32(PM_WDOG, PM_PASSWORD | 100);  // number of watchdog tick
 }
 void command_info() {
     get_board_revision();
