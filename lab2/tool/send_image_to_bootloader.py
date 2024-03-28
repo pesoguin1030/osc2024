@@ -22,18 +22,18 @@ if platform == "linux" or platform == "linux2":
     with open(args.filename,'rb') as fd:
         with Serial(args.device, args.baud) as ser:
 
-            # Read the kernel image into memory
+            # Read the kernel image into memory as binary
             kernel_raw = fd.read()
-            # Get the length of the kernel image
+            # Get the length of the kernel image (bytes)
             length = len(kernel_raw)
 
-            # Print the size of the kernel image
+            # convert the size from int to hex
             print("Kernel image size : ", hex(length))
             
             # convert the length of the kernel image to a series of bytes in a little-endian order (which is a standard for x86 and x86_64 architectures)
             for i in range(8):
                 ser.write(struct.pack('<Q', length)[i:i+1]) # The slicing ensures that each iteration sends exactly one byte
-                ser.flush()
+                ser.flush() # ensure a byte is written out and not in buffer
 
             # Begin sending the kernel image over UART
             start_time = time.time()
