@@ -325,13 +325,13 @@ void do_test_preemptive()
     // add_timer(test_timer1, 1, "test timer1");
     // add_timer(test_timer2, 10, "test timer2");
     add_timer(test_loop, 1, "test loop");
-    add_timer(set_exit, 6, "exit");
+    add_timer(set_exit, 10, "exit");
 
     // add_timer(set_exit, 10, "exit");
     // irqtask_add(test_loop, 100); //set priority as 100
 }
 
-static volatile int exit = 0;
+volatile int exit = 0;
 void test_loop()
 {
     uart_sendline("only when exit == 1, we can exit infinite loop.\n");
@@ -341,6 +341,6 @@ void test_loop()
 
 void set_exit()
 {
-    exit = 1;
+    //exit = 1;
     uart_sendline("We set exit as 1 to exit infinite loop at t = 10s.\n");
 }

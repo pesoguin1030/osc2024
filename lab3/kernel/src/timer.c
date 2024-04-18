@@ -58,7 +58,6 @@ void timer_event_callback(timer_event_t * timer_event){
     {
         set_core_timer_interrupt_by_tick(((timer_event_t*)timer_event_list->next)->interrupt_time);
     }
-    
     core_timer_enable();
     ((void (*)(char*))timer_event->callback)(timer_event->args);  // call the event
 }

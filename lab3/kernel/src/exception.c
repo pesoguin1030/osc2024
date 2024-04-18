@@ -30,7 +30,7 @@ void el1h_irq_router(){
         else if (*AUX_MU_IIR_REG & (2 << 1)) // Interrupt ID bits
         {
             *AUX_MU_IER_REG &= ~(1);  // disable read interrupt
-            irqtask_add(uart_r_irq_handler, UART_IRQ_PRIORITY);
+            irqtask_add(uart_r_irq_handler, timer_priority++);
             irqtask_run_preemptive();
         }
     }
@@ -139,7 +139,11 @@ void irqtask_add(void *task_function,unsigned long long priority){
     el1_interrupt_enable();
 }
 
-void irqtask_run_preemptive(){
+extern int exit;
+
+void irqtask_run_preemptive()
+{
+    
     el1_interrupt_enable();
     while (!list_empty(task_list))
     {
@@ -150,6 +154,8 @@ void irqtask_run_preemptive(){
         // Run new task (early return) if its priority is lower than the scheduled task.
         if (curr_task_priority <= the_task->priority)
         {
+            exit = 1;
+
             el1_interrupt_enable();
             break;
         }
@@ -160,9 +166,10 @@ void irqtask_run_preemptive(){
         curr_task_priority = the_task->priority;
 
         el1_interrupt_enable();
-        irqtask_run(the_task);
-        el1_interrupt_disable();
 
+        irqtask_run(the_task);
+
+        el1_interrupt_disable();
         curr_task_priority = prev_task_priority;
         el1_interrupt_enable();
         free(the_task);
