@@ -3,12 +3,15 @@
 
 void uart_init();
 char uart_recv();
+char uart_getc();
 void uart_send(char c);
 int  uart_sendline(char* fmt, ...);
 char uart_async_getc();
 void uart_async_putc(char c);
 int  uart_puts(char* fmt, ...);
 void uart_2hex(unsigned int d);
+void uart_flush();
+void async_uart_test();
 
 void uart_interrupt_enable();
 void uart_interrupt_disable();

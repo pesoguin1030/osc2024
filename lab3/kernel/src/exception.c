@@ -15,6 +15,7 @@ void el1_interrupt_disable(){
 }
 
 void el1h_irq_router(){
+    static int timer_priority = 10;
     // decouple the handler into irqtask queue
     // (1) https://datasheets.raspberrypi.com/bcm2835/bcm2835-peripherals.pdf - Pg.113
     // (2) https://datasheets.raspberrypi.com/bcm2836/bcm2836-peripherals.pdf - Pg.16
@@ -36,7 +37,7 @@ void el1h_irq_router(){
     else if(*CORE0_INTERRUPT_SOURCE & INTERRUPT_SOURCE_CNTPNSIRQ)  //from CNTPNS (core_timer) // A1 - setTimeout run in el1
     {
         core_timer_disable();
-        irqtask_add(core_timer_handler, TIMER_IRQ_PRIORITY);
+        irqtask_add(core_timer_handler, timer_priority--);
         irqtask_run_preemptive();
         core_timer_enable();
     }

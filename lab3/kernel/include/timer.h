@@ -14,6 +14,7 @@ typedef struct timer_event {
     unsigned long long interrupt_time;  //store as tick time after cpu start
     void *callback; // interrupt -> timer_callback -> callback(args)
     char* args; // need to free the string by event callback function
+    //int priotity;
 } timer_event_t;
 
 //now the callback only support "funcion(char *)", char* in args

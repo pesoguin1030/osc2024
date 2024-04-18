@@ -28,4 +28,13 @@ void do_cmd_setTimeout(char* msg, char* sec);
 void do_cmd_set2sAlert();
 void do_cmd_reboot();
 
+//test preemptive
+void do_test_preemptive();
+void set_exit();
+void test_loop();
+// void test_timer1();
+// void test_timer2();
+// void first_timer();
+// void second_timer();
+
 #endif /* _SHELL_H_ */

@@ -165,7 +165,36 @@ void uart_w_irq_handler(){
         return;  // buffer empty
     }
     uart_send(uart_tx_buffer[uart_tx_buffer_ridx++]);
-    if(uart_tx_buffer_ridx>=VSPRINT_MAX_BUF_SIZE) uart_tx_buffer_ridx=0;
+    // while (1); // liang
+    if (uart_tx_buffer_ridx >= VSPRINT_MAX_BUF_SIZE) uart_tx_buffer_ridx = 0;
     *AUX_MU_IER_REG |=2;  // enable write interrupt
 }
 
+void async_uart_test() {
+
+    uart_interrupt_enable();
+
+    for (int i = 0; i < 10000; i++)
+        asm volatile("nop");
+
+    char buffer[256];
+    unsigned int i = 0;
+    while (1) {
+        buffer[i] = uart_async_getc();
+        if (buffer[i] == '\r') break;
+        i++;
+    }
+    buffer[i+1] = '\n';
+    buffer[i+2] = '\0';
+    uart_puts(buffer);
+    uart_interrupt_disable();
+
+}
+
+void uart_flush()
+{
+    while (*AUX_MU_LSR_REG & 0x01)
+    {
+        *AUX_MU_IO_REG; // reads from the I/O register buffer to clean it
+    }
+}

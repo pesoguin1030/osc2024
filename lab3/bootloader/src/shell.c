@@ -38,7 +38,7 @@ void cli_cmd_read(char* buffer)
             break;
         }
 
-        if (idx > 0 & c == 127)
+        if (idx > 0 && c == 127)
         {
             uart_puts("\b \b");
             idx--;
@@ -92,16 +92,16 @@ void do_cmd_loadimg()
     unsigned long long kernel_size = 0;
     char* kernel_start = (char*) (&_start);
     uart_puts("Please upload the image file.\r\n");
-    for (int i=0; i<8; i++)
+    for (int i=0; i<4; i++)
     {
         c = uart_getc();
         kernel_size += c<<(i*8);
     }
     for (int i=0; i<kernel_size; i++)
     {
-        c = uart_getc();
-        kernel_start[i] = c;
+        kernel_start[i] = uart_getc();
     }
+    
     uart_puts("Image file downloaded successfully.\r\n");
     uart_puts("Point to new kernel ...\r\n");
 

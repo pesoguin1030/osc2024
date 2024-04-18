@@ -2,6 +2,7 @@
 #include "uart1.h"
 #include "heap.h"
 #include "u_string.h"
+#include "exception.h"
 
 #define STR(x) #x
 #define XSTR(s) STR(s)
@@ -41,6 +42,7 @@ void core_timer_handler(){
     if (list_empty(timer_event_list))
     {
         set_core_timer_interrupt(10000); // disable timer interrupt (set a very big value)
+        set_core_timer_interrupt_by_tick(get_tick_plus_s(10000));
         return;
     }
     timer_event_callback((timer_event_t *)timer_event_list->next); // do callback and set new interrupt
@@ -50,21 +52,25 @@ void timer_event_callback(timer_event_t * timer_event){
     list_del_entry((struct list_head*)timer_event); // delete the event in queue
     free(timer_event->args);                        // free the event's space
     free(timer_event);
-    ((void (*)(char*))timer_event-> callback)(timer_event->args);  // call the event
 
     // set queue linked list to next time event if it exists
     if(!list_empty(timer_event_list))
     {
         set_core_timer_interrupt_by_tick(((timer_event_t*)timer_event_list->next)->interrupt_time);
     }
-    else
-    {
-        set_core_timer_interrupt(10000);  // disable timer interrupt (set a very big value)
-    }
+    
+    core_timer_enable();
+    ((void (*)(char*))timer_event->callback)(timer_event->args);  // call the event
 }
 
 void timer_set2sAlert(char* str)
 {
+    static int count = 0;
+    if(count > 10){
+        return;
+    }
+    count++;
+
     unsigned long long cntpct_el0;
     __asm__ __volatile__("mrs %0, cntpct_el0\n\t": "=r"(cntpct_el0)); // tick auchor
     unsigned long long cntfrq_el0;
@@ -77,10 +83,13 @@ void timer_set2sAlert(char* str)
 void add_timer(void *callback, unsigned long long timeout, char* args){
     timer_event_t* the_timer_event = kmalloc(sizeof(timer_event_t)); // free by timer_event_callback
     // store all the related information in timer_event
-    the_timer_event->args = kmalloc(strlen(args)+1);
-    strcpy(the_timer_event -> args,args);
+    // uart_puts("Setting timer for task: %s with delay: %d\n", args, timeout);
+    the_timer_event->args = kmalloc(strlen(args) + 1);
+    strcpy(the_timer_event->args, args);
     the_timer_event->interrupt_time = get_tick_plus_s(timeout);
     the_timer_event->callback = callback;
+    //static int timer_priority = 0; //test 2 timer preemptive
+    //the_timer_event->priotity = timer_priority--;
     INIT_LIST_HEAD(&the_timer_event->listhead);
 
     // add the timer_event into timer_event_list (sorted)
@@ -98,6 +107,7 @@ void add_timer(void *callback, unsigned long long timeout, char* args){
     {
         list_add_tail(&the_timer_event->listhead,timer_event_list);
     }
+
     // set interrupt to first event
     set_core_timer_interrupt_by_tick(((timer_event_t*)timer_event_list->next)->interrupt_time);
 }
