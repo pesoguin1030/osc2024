@@ -233,3 +233,22 @@ int atoi(char* str)
     // return result.
     return res;
 }
+
+unsigned long str_to_hex(const char *str) {
+  unsigned long result = 0;
+  while (*str) {
+    char c = *str++;
+    int value = 0;
+    if (c >= '0' && c <= '9') {
+      value = c - '0';
+    } else if (c >= 'a' && c <= 'f') {
+      value = 10 + (c - 'a');
+    } else if (c >= 'A' && c <= 'F') {
+      value = 10 + (c - 'A');
+    } else {
+      return 0;
+    }
+    result = result * 16 + value;
+  }
+  return result;
+}

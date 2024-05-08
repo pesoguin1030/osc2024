@@ -52,7 +52,7 @@
     add sp, sp, 32 * 9
 .endm
 
-.macro    kernel_ventry    label
+.macro    ventry    label
     .align    7   // entry should be aligned to 0x80 (2^7)
     b    \label
 .endm
@@ -64,28 +64,28 @@
 // https://github.com/torvalds/linux/blob/v4.14/arch/arm64/kernel/entry.S#L367
 exception_vector_table:
     //Exception from the current EL while using SP_EL0
-    kernel_ventry    el1t_sync_invalid        // Synchronous EL1t
-    kernel_ventry    el1t_irq_invalid         // IRQ EL1t
-    kernel_ventry    el1t_fiq_invalid         // FIQ EL1t
-    kernel_ventry    el1t_error_invalid       // Error EL1t
+    ventry    el1t_sync_invalid        // Synchronous EL1t
+    ventry    el1t_irq_invalid         // IRQ EL1t
+    ventry    el1t_fiq_invalid         // FIQ EL1t
+    ventry    el1t_error_invalid       // Error EL1t
 
     //Exception from the current EL while using SP_ELx
-    kernel_ventry    el1h_sync                // Synchronous EL1h
-    kernel_ventry    el1h_irq                 // IRQ EL1h
-    kernel_ventry    el1h_fiq_invalid         // FIQ EL1h
-    kernel_ventry    el1h_error_invalid       // Error EL1h
+    ventry    el1h_sync                // Synchronous EL1h
+    ventry    el1h_irq                 // IRQ EL1h
+    ventry    el1h_fiq_invalid         // FIQ EL1h
+    ventry    el1h_error_invalid       // Error EL1h
 
     //Exception from a lower EL and at least one lower EL is AArch64
-    kernel_ventry    el0_sync_64             // Synchronous 64-bit EL0
-    kernel_ventry    el0_irq_64              // IRQ 64-bit EL0
-    kernel_ventry    el0_fiq_invalid_64      // FIQ 64-bit EL0
-    kernel_ventry    el0_error_invalid_64    // Error 64-bit EL0
+    ventry    el0_sync_64             // Synchronous 64-bit EL0
+    ventry    el0_irq_64              // IRQ 64-bit EL0
+    ventry    el0_fiq_invalid_64      // FIQ 64-bit EL0
+    ventry    el0_error_invalid_64    // Error 64-bit EL0
 
     //Exception from a lower EL and at least all lower EL are AArch32
-    kernel_ventry    el0_sync_invalid_32     // Synchronous 32-bit EL0
-    kernel_ventry    el0_irq_invalid_32      // IRQ 32-bit EL0
-    kernel_ventry    el0_fiq_invalid_32      // FIQ 32-bit EL0
-    kernel_ventry    el0_error_invalid_32    // Error 32-bit EL0
+    ventry    el0_sync_invalid_32     // Synchronous 32-bit EL0
+    ventry    el0_irq_invalid_32      // IRQ 32-bit EL0
+    ventry    el0_fiq_invalid_32      // FIQ 32-bit EL0
+    ventry    el0_error_invalid_32    // Error 32-bit EL0
 
 
 el1t_sync_invalid:
@@ -145,7 +145,6 @@ el0_sync_64:
     bl el0_sync_router
     load_all
     eret
-
 el0_irq_64:
     save_all
     mov x0,9

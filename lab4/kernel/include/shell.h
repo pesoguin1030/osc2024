@@ -22,19 +22,16 @@ void do_cmd_exec(char*);
 void do_cmd_help();
 void do_cmd_hello();
 void do_cmd_info();
-void do_cmd_kmalloc();
+void do_cmd_s_allocator();
 void do_cmd_ls(char*);
+void do_cmd_memory_tester();
 void do_cmd_setTimeout(char* msg, char* sec);
 void do_cmd_set2sAlert();
+void do_cmd_kmalloc(char* size);
+void do_cmd_kfree(char* addr);
+void do_cmd_page_addr();
+void do_cmd_chunk_addr();
+void do_cmd_page_idx();
 void do_cmd_reboot();
-
-//test preemptive
-void do_test_preemptive();
-void set_exit();
-void test_loop();
-// void test_timer1();
-// void test_timer2();
-// void first_timer();
-// void second_timer();
 
 #endif /* _SHELL_H_ */

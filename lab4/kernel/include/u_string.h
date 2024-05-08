@@ -14,5 +14,6 @@ char*              strcpy(char *dest, const char *src);
 
 char* str_SepbySpace(char* head);
 int   atoi(char* str);
+unsigned long str_to_hex(const char* str);
 
 #endif /* _U_STRING_H_ */

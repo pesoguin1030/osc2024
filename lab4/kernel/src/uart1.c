@@ -1,11 +1,9 @@
 #include "bcm2837/rpi_gpio.h"
 #include "bcm2837/rpi_uart1.h"
+#include "bcm2837/rpi_irq.h"
 #include "uart1.h"
 #include "exception.h"
 #include "u_string.h"
-
-
-#define IRQS1  ((volatile unsigned int*)(0x3f00b210))
 
 //implement first in first out buffer with a read index and a write index
 char uart_tx_buffer[VSPRINT_MAX_BUF_SIZE]={};
@@ -138,7 +136,7 @@ int  uart_puts(char* fmt, ...) {
 void uart_interrupt_enable(){
     *AUX_MU_IER_REG |=1;  // enable read interrupt
     *AUX_MU_IER_REG |=2;  // enable write interrupt
-    *IRQS1 |= 1 << 29;    // Pg.116
+    *ENABLE_IRQS_1  |= 1 << 29;    // Pg.112
 }
 
 void uart_interrupt_disable(){
@@ -165,36 +163,7 @@ void uart_w_irq_handler(){
         return;  // buffer empty
     }
     uart_send(uart_tx_buffer[uart_tx_buffer_ridx++]);
-    // while (1); // liang
-    if (uart_tx_buffer_ridx >= VSPRINT_MAX_BUF_SIZE) uart_tx_buffer_ridx = 0;
+    if(uart_tx_buffer_ridx>=VSPRINT_MAX_BUF_SIZE) uart_tx_buffer_ridx=0;
     *AUX_MU_IER_REG |=2;  // enable write interrupt
 }
 
-void async_uart_test() {
-
-    uart_interrupt_enable();
-
-    for (int i = 0; i < 10000; i++)
-        asm volatile("nop");
-
-    char buffer[256];
-    unsigned int i = 0;
-    while (1) {
-        buffer[i] = uart_async_getc();
-        if (buffer[i] == '\r') break;
-        i++;
-    }
-    buffer[i+1] = '\n';
-    buffer[i+2] = '\0';
-    uart_puts(buffer);
-    uart_interrupt_disable();
-
-}
-
-void uart_flush()
-{
-    while (*AUX_MU_LSR_REG & 0x01)
-    {
-        *AUX_MU_IO_REG; // reads from the I/O register buffer to clean it
-    }
-}
