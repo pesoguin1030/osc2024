@@ -58,6 +58,7 @@ typedef struct frame
 void     init_allocator();
 frame_t* split_block(frame_t* frame);
 int merge_block(frame_t* frame_ptr);
+int merge_block1(frame_t* frame_ptr);
 frame_t* get_buddy(frame_t* frame);
 
 void dump_page_info();

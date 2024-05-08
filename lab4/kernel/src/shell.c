@@ -72,6 +72,7 @@ void cli_cmd_exec(char* buffer)
     if (!buffer) return;
 
     char* cmd = buffer;
+    uart_sendline("[test]%s!!!", cmd);
     char* argvs = str_SepbySpace(buffer);
 
     if (strcmp(cmd, "cat") == 0) {
@@ -104,13 +105,13 @@ void cli_cmd_exec(char* buffer)
     {
         do_cmd_kfree(argvs);
     
-    } else if (!strcmp(cmd, "page_addr"))
+    } else if (strcmp(cmd, "page_addr")==0)
     {
         do_cmd_page_addr();
-    } else if (!strcmp(cmd, "chunk_addr"))
+    } else if (strcmp(cmd, "chunk_addr")==0)
     {
         do_cmd_chunk_addr(); 
-    } else if (!strcmp(cmd, "index"))
+    } else if (strcmp(cmd, "index")== 0)
     {
         do_cmd_page_idx();
     }

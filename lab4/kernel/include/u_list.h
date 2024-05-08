@@ -85,6 +85,19 @@ static inline void __list_del(struct list_head * prev, struct list_head * next)
 	prev->next = next;
 }
 
+/**
+ * list_del_init() - Remove a list node from the list and reinitialize it
+ * @node: pointer to the node
+ *
+ * The removed node will not end up in an uninitialized state like when using
+ * list_del. Instead the node is initialized again to the unlinked state.
+ */
+static inline void list_del_init(struct list_head *node) {
+    __list_del(node->prev, node->next);
+    INIT_LIST_HEAD(node);
+}
+
+
 static inline void list_del_entry(struct list_head *entry)
 {
 	__list_del(entry->prev, entry->next);

@@ -78,12 +78,9 @@ void init_allocator()
 
     // init frame_array
     for (int i = 0; i < BUDDY_MEMORY_PAGE_COUNT; i++)
-    {
-        if (i % (1 << FRAME_IDX_FINAL) == 0)
-        {//val : order
-            frame_array[i].val = FRAME_IDX_FINAL;
-            frame_array[i].used = FRAME_FREE;
-        }
+    { 
+        frame_array[i].val = FRAME_IDX_0;
+        frame_array[i].used = FRAME_FREE;
     }
 
     //init frame freelist
@@ -104,15 +101,33 @@ void init_allocator()
         INIT_LIST_HEAD(&frame_array[i].listhead);
         frame_array[i].idx = i;
         frame_array[i].chunk_order = CHUNK_NONE;
-
-        // add init frame (FRAME_IDX_FINAL) into freelist
-        if (i % (1 << FRAME_IDX_FINAL) == 0)
-        {
-            list_add(&frame_array[i].listhead, &frame_freelist[FRAME_IDX_FINAL]);
-        }
+        list_add_tail(&frame_array[i].listhead, &frame_freelist[FRAME_IDX_0]);   
     }
 
-    //startup_allocation();
+    startup_allocation();
+
+    // Attempt to merge all frames from smallest to largest
+    // for(int level = 0; level < FRAME_MAX_IDX; level++)
+    // {
+    //     struct list_head *tmp;
+    //     list_for_each(tmp, &frame_freelist[level])
+    //     {
+    //         //uart_sendline("mp->index: %d, tmp->level:%d\n", ((frame_t*)tmp)->idx, ((frame_t*)tmp)->val);
+    //         merge_block1(&frame_array[((frame_t*)tmp)->idx]);
+    //     }
+    // }
+
+    for(int level = 0; level < FRAME_MAX_IDX; level++)
+    {
+      for (int i = 0; i < BUDDY_MEMORY_PAGE_COUNT; i+=(1<<level))
+      {
+        merge_block1(&frame_array[i]);
+      }
+    }
+
+
+
+
     print_allocated_pages_addr();
     print_allocated_chunks_addr();
     print_allocated_pages_index();
@@ -268,7 +283,7 @@ void page_free(void* ptr)
     uart_sendline("        Before\r\n");
     dump_page_info();
     target_frame_ptr->used = FRAME_FREE;
-    while (merge_block(target_frame_ptr) == 0); // merge buddy iteratively
+    while (merge_block1(target_frame_ptr) == 0); // merge buddy iteratively
     list_add(&target_frame_ptr->listhead, &frame_freelist[target_frame_ptr->val]);
     uart_sendline("        After\r\n");
     dump_page_info();
@@ -290,7 +305,6 @@ frame_t* get_buddy(frame_t* frame)
     // XOR(idx, order)
     return &frame_array[frame->idx ^ (1 << frame->val)];
 }
-
 int merge_block(frame_t* frame_ptr)
 {
     frame_t* buddy = get_buddy(frame_ptr);
@@ -308,9 +322,66 @@ int merge_block(frame_t* frame_ptr)
 
     list_del_entry((struct list_head*)buddy);
     frame_ptr->val += 1;
-    uart_sendline("    Merging 0x%x, 0x%x, -> val = %d\r\n", frame_ptr->idx, buddy->idx, frame_ptr->val);
+  
+    //uart_sendline("    Merging 0x%x, 0x%x, -> val = %d\r\n", frame_ptr->idx, buddy->idx, frame_ptr->val);
     return 0;
 }
+
+int merge_block1(frame_t* frame_ptr)
+{
+    frame_t* buddy = get_buddy(frame_ptr);
+    // frame is the boundary
+    if (frame_ptr->val == FRAME_IDX_FINAL)
+        return -1;
+
+    // Order must be the same: 2**i + 2**i = 2**(i+1)
+    if (frame_ptr->val != buddy->val)
+        return -1;
+
+    // buddy is in used
+    if (buddy->used == FRAME_ALLOCATED)
+        return -1;
+
+    list_del_entry((struct list_head*)buddy);
+    list_del_entry((struct list_head*)frame_ptr);
+    frame_ptr->val += 1;
+    list_add((struct list_head*)frame_ptr, &frame_freelist[frame_ptr->val]);
+ 
+    //uart_sendline("    Merging 0x%x, 0x%x, -> val = %d\r\n", frame_ptr->idx, buddy->idx, frame_ptr->val);
+    return 0;
+}
+
+// void merge_block(frame_t* frame_ptr) {
+    
+//     int order = frame_ptr->val;
+
+//     // 确保 frame 不在最大 order，且与 buddy 同一 order
+//     if (order == FRAME_IDX_FINAL || order == FRAME_ALLOCATED||order!=FRAME_BELONG_LEFT) {
+//         return;
+//     }
+
+//     frame_t* buddy = get_buddy(frame_ptr);
+
+//     // 确保 buddy 是空闲的
+//     if (order != buddy->val) {
+//         return ;
+//     }
+
+//     frame_t* left = frame_ptr < buddy ? frame_ptr : buddy;
+//     frame_t* right = frame_ptr < buddy ? buddy : frame_ptr;
+
+//     list_del_init(&left->listhead);
+//     list_del_init(&right->listhead);
+//     left->val = order + 1; //order+1
+//     right->used = FRAME_BELONG_LEFT;
+
+//     // 将合并后的 frame 添加到新的 freelist
+//     list_add(&left->listhead, &frame_freelist[order + 1]);
+
+//     merge_block(left);
+        
+//     return ;
+// }
 
 void dump_page_info()
 {
@@ -464,44 +535,60 @@ void kfree(void* ptr)
     chunk_free(ptr);
 }
 
-void memory_reserve(unsigned long long start, unsigned long long end)
-{
-    start -= start % PAGESIZE; // floor (align 0x1000)
-    end = end % PAGESIZE ? end + PAGESIZE - (end % PAGESIZE) : end; // ceiling (align 0x1000)
+// void memory_reserve(unsigned long long start, unsigned long long end)
+// {
+//     start -= start % PAGESIZE; // floor (align 0x1000)
+//     end = end % PAGESIZE ? end + PAGESIZE - (end % PAGESIZE) : end; // ceiling (align 0x1000)
+
+//     uart_sendline("Reserved Memory: ");
+//     uart_sendline("start 0x%x ~ ", start);
+//     uart_sendline("end 0x%x\r\n", end);
+
+//     // delete page from free list
+//     for (int order = FRAME_IDX_FINAL; order >= 0; order--)
+//     {
+//         list_head_t* pos;
+//         list_for_each(pos, &frame_freelist[order])
+//         {
+//             unsigned long long pagestart = ((frame_t*)pos)->idx * PAGESIZE + BUDDY_MEMORY_BASE;
+//             unsigned long long pageend = pagestart + (PAGESIZE << order);
+
+//             if (start <= pagestart && end >= pageend) // if page all in reserved memory -> delete it from freelist
+//             {
+//                 ((frame_t*)pos)->used = FRAME_ALLOCATED;
+//                 uart_sendline("    [!] Reserved page in 0x%x - 0x%x\n", pagestart, pageend);
+//                 uart_sendline("        Before\n");
+//                 dump_page_info();
+//                 list_del_entry(pos);
+//                 uart_sendline("        Remove usable block for reserved memory: order %d\r\n", order);
+//                 uart_sendline("        After\n");
+//                 dump_page_info();
+//             } else if (start >= pageend || end <= pagestart) // no intersection
+//             {
+//                 continue;
+//             } else // partial intersection, separate the page into smaller size.
+//             {
+//                 list_del_entry(pos);
+//                 list_head_t* temppos = pos->prev;
+//                 list_add(&split_block((frame_t*)pos)->listhead, &frame_freelist[order - 1]);// recursion reduant memory
+//                 pos = temppos;
+//             }
+//         }
+//     }
+// }
+
+void memory_reserve(unsigned long long start, unsigned long long end) {
+    // Calculate the range of pages to be reserved
+    int start_page = (start - BUDDY_MEMORY_BASE) / PAGESIZE;
+    int end_page = (end - BUDDY_MEMORY_BASE - 1) / PAGESIZE;
 
     uart_sendline("Reserved Memory: ");
-    uart_sendline("start 0x%x ~ ", start);
-    uart_sendline("end 0x%x\r\n", end);
+    uart_sendline("start_page 0x%x ~ ", start_page);
+    uart_sendline("end_page 0x%x\r\n", end_page);
 
-    // delete page from free list
-    for (int order = FRAME_IDX_FINAL; order >= 0; order--)
-    {
-        list_head_t* pos;
-        list_for_each(pos, &frame_freelist[order])
-        {
-            unsigned long long pagestart = ((frame_t*)pos)->idx * PAGESIZE + BUDDY_MEMORY_BASE;
-            unsigned long long pageend = pagestart + (PAGESIZE << order);
-
-            if (start <= pagestart && end >= pageend) // if page all in reserved memory -> delete it from freelist
-            {
-                ((frame_t*)pos)->used = FRAME_ALLOCATED;
-                uart_sendline("    [!] Reserved page in 0x%x - 0x%x\n", pagestart, pageend);
-                uart_sendline("        Before\n");
-                dump_page_info();
-                list_del_entry(pos);
-                uart_sendline("        Remove usable block for reserved memory: order %d\r\n", order);
-                uart_sendline("        After\n");
-                dump_page_info();
-            } else if (start >= pageend || end <= pagestart) // no intersection
-            {
-                continue;
-            } else // partial intersection, separate the page into smaller size.
-            {
-                list_del_entry(pos);
-                list_head_t* temppos = pos->prev;
-                list_add(&split_block((frame_t*)pos)->listhead, &frame_freelist[order - 1]);// recursion reduant memory
-                pos = temppos;
-            }
-        }
+    // Mark all pages within the specified range as allocated
+    for (int i = start_page; i <= end_page; i++) {
+        frame_array[i].used = FRAME_ALLOCATED;
+        list_del_init(&frame_array[i].listhead);
     }
 }
