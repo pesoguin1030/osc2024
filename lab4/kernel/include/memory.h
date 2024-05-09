@@ -40,6 +40,8 @@ typedef enum {
     CHUNK_IDX_1,         //  0x40
     CHUNK_IDX_2,         //  0x80
     CHUNK_IDX_3,         // 0x100
+    // CHUNK_IDX_FINAL,     // 0x200
+    // CHUNK_MAX_IDX = 5
     CHUNK_IDX_4,         // 0x200
     CHUNK_IDX_5,         // 0x400
     CHUNK_IDX_FINAL = 6, // 0x800

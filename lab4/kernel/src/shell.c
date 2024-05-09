@@ -31,7 +31,7 @@ struct CLI_CMDS cmd_list[CLI_MAX_CMD]=
     {.command = "kmalloc", .help = "allocate memory using buddy system and dynamic allocator"},
     {.command = "kfree", .help = "free memory using buddy system and dynamic allocator"},
     {.command = "page_addr", .help = "print allocated page address"},
-    {.command = "chunk_addr", .help = "print allocated chunk index"},
+    {.command = "chunk_addr", .help = "print allocated chunk address"},
     {.command = "index", .help = "print allocated page index"},
     {.command = "set2sAlert", .help = "set core timer interrupt every 2 second"},
     {.command = "reboot", .help = "reboot the device"}
@@ -72,7 +72,6 @@ void cli_cmd_exec(char* buffer)
     if (!buffer) return;
 
     char* cmd = buffer;
-    uart_sendline("[test]%s!!!", cmd);
     char* argvs = str_SepbySpace(buffer);
 
     if (strcmp(cmd, "cat") == 0) {
@@ -165,12 +164,28 @@ void do_cmd_dtb()
     traverse_device_tree(dtb_ptr, dtb_callback_show_tree);
 }
 
-void do_cmd_help()
-{
-    for(int i = 0; i < CLI_MAX_CMD; i++)
-    {
+void do_cmd_help() {
+    uart_puts("\r\nAvailable Commands:\r\n");
+    uart_puts("====================\r\n");
+
+    int max_cmd_length = 0;
+    for (int i = 0; i < CLI_MAX_CMD; i++) {
+        int cmd_length = strlen(cmd_list[i].command);
+        if (cmd_length > max_cmd_length) {
+            max_cmd_length = cmd_length;
+        }
+    }
+
+    for (int i = 0; i < CLI_MAX_CMD; i++) {
         uart_puts(cmd_list[i].command);
-        uart_puts("\t\t\t: ");
+        
+        int current_length = strlen(cmd_list[i].command);
+        int spaces_to_add = max_cmd_length - current_length + 4;
+        for (int j = 0; j < spaces_to_add; j++) {
+            uart_puts(" ");
+        }
+        
+        uart_puts(": ");
         uart_puts(cmd_list[i].help);
         uart_puts("\r\n");
     }
@@ -362,15 +377,15 @@ void do_cmd_set2sAlert()
 }
 
 void do_cmd_kmalloc(char* size) {
-    uart_puts("size (Bytes): ");
+    uart_sendline("size (Bytes): ");
     cli_cmd_read(size);
     void* address = kmalloc((unsigned int)atoi(size));
     //uintptr_t address_int = (uintptr_t)address;
     
-    uart_puts("address: 0x");
+    uart_sendline("address: 0x");
     //uart_2hex((unsigned int)address_int);
     uart_sendline("%x", address);
-    uart_puts("\n");
+    uart_sendline("\n");
 }
 
 void do_cmd_kfree(char* addr) {
@@ -379,24 +394,6 @@ void do_cmd_kfree(char* addr) {
     kfree((void*)str_to_hex(addr));
     uart_puts("\n");
 }
-// void do_cmd_buddy_system_alloc(char *size)
-// {
-//     uart_puts("size(KB): ");
-//     cli_cmd_read(size);
-//     unsigned long int address = buddy_system_alloc(atoi(size));
-//     uart_puts("address: 0x");
-//     uart_2hex(address);
-//     uart_puts("\n");
-// }
-
-// void do_cmd_buddy_system_free(char *index)
-// {
-//     uart_puts("index: ");
-//     cli_cmd_read(index);
-//     //uart_sendline("atoi :%d\n", hex2dec(index));
-//     buddy_system_free(atoi(index));
-//     uart_puts("\n");
-// }
 
 void do_cmd_page_addr()
 {

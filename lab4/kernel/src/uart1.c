@@ -28,14 +28,7 @@ void uart_init()
     *AUX_MU_BAUD_REG  = 270;     // 115200 baud rate
     *AUX_MU_IIR_REG   = 0xC6;    // disable FIFO
 
-    /* map UART1 to GPIO pins */
-    r = *GPFSEL1;
-    r &= ~(7<<12);               // clean gpio14
-    r |= 2<<12;                  // set gpio14 to alt5
-    r &= ~(7<<15);               // clean gpio15
-    r |= 2<<15;                  // set gpio15 to alt5
-    *GPFSEL1 = r;
-
+    
     /* enable pin 14, 15 - ref: Page 101 */
     *GPPUD = 0;
     r=150; while(r--) { asm volatile("nop"); }
@@ -44,6 +37,14 @@ void uart_init()
     *GPPUDCLK0 = 0;
 
     *AUX_MU_CNTL_REG = 3;      // enable TX/RX
+
+    /* map UART1 to GPIO pins */
+    r = *GPFSEL1;
+    r &= ~(7<<12);               // clean gpio14
+    r |= 2<<12;                  // set gpio14 to alt5
+    r &= ~(7<<15);               // clean gpio15
+    r |= 2<<15;                  // set gpio15 to alt5
+    *GPFSEL1 = r;
 }
 
 char uart_recv() {
