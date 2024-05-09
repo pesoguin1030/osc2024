@@ -78,7 +78,7 @@ void  chunk_free(void* ptr);
 void* kmalloc(unsigned int size);
 void  kfree(void *ptr);
 void  memory_reserve(unsigned long long start, unsigned long long end);
-int all_chunks_free_in_page(frame_t* page_frame);
+int all_chunks_free_and_return_page(frame_t* page_frame);
 void print_allocated_pages_addr();
 void print_allocated_chunks_addr();
 void print_allocated_pages_index();

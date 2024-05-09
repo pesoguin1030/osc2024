@@ -427,7 +427,7 @@ void* chunk_malloc(unsigned int size)
     return r;
 }
 
-int all_chunks_free_in_page(frame_t* page_frame)
+int all_chunks_free_and_return_page(frame_t* page_frame)
 {
     // 獲取該頁面的 chunk 級別
     int chunk_order = page_frame->chunk_order;
@@ -445,6 +445,16 @@ int all_chunks_free_in_page(frame_t* page_frame)
         if ((unsigned long long)current >= page_start && (unsigned long long)current < page_end) {
             free_chunks_count++;
         }
+    }
+    if (free_chunks_count == num_chunks_in_page)
+    {
+        list_for_each(current, &chunk_list[chunk_order])
+        {
+            if ((unsigned long long)current >= page_start && (unsigned long long)current < page_end) {
+                list_del_entry(current);
+            }
+        }
+
     }
 
     // 如果該頁面內所有 chunk 都已釋放，則返回 true
@@ -466,8 +476,9 @@ void chunk_free(void* ptr)
     // {
     //     page_free(ptr);
     // }
-    if (all_chunks_free_in_page(pageframe_ptr)) {
+    if (all_chunks_free_and_return_page(pageframe_ptr)) {
         uart_sendline("[+] All chunks in page are free. Releasing page back to Buddy System\n");
+
         page_free((void*)(BUDDY_MEMORY_BASE + (pageframe_ptr->idx * PAGESIZE)));
     }
 
@@ -486,7 +497,7 @@ void* kmalloc(unsigned int size)
         return r;
     }
     // go for chunk
-    void* r = chunk_malloc(size);
+    void* r = chunk_malloc(size+16); // 16 bytes for (head)metadata
     return r;
 }
 
