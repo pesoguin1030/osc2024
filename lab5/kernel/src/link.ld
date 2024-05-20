@@ -4,7 +4,7 @@ _heap_stack_size = 8M;
 # 0x080000   _start
 #            text, rodata, bss
 #            heap+stack // simple allocator
-# 0x880000   _end 0x8892E0
+# 0x880000   _end
 # 0x3000000  bootloader
 # 0x3100000  _end
 # 0x8000000  initramfs

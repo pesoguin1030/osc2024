@@ -8,10 +8,11 @@
 #include "dtb.h"
 #include "memory.h"
 #include "timer.h"
+#include "scheduler.h"
 
 #define CLI_MAX_CMD 18
-#define USTACK_SIZE 0x10000
 
+extern int   uart_recv_echo_flag;
 extern char* dtb_ptr;
 extern void* CPIO_DEFAULT_START;
 
@@ -23,6 +24,7 @@ struct CLI_CMDS cmd_list[CLI_MAX_CMD]=
     {.command="hello", .help="print Hello World!"},
     {.command="help", .help="print all available commands"},
     {.command="s_allocator", .help="simple allocator in heap session"},
+    {.command="thread_tester", .help="thread tester with dummy function - foo()"},
     {.command="info", .help="get device information via mailbox"},
     {.command="ls", .help="list directory contents"},
     {.command="memory_tester", .help="memory testcase generator, allocate and free"},
@@ -33,7 +35,6 @@ struct CLI_CMDS cmd_list[CLI_MAX_CMD]=
     {.command = "page_addr", .help = "print allocated page address"},
     {.command = "chunk_addr", .help = "print allocated chunk address"},
     {.command = "index", .help = "print allocated page index"},
-    {.command = "set2sAlert", .help = "set core timer interrupt every 2 second"},
     {.command = "reboot", .help = "reboot the device"}
 };
 
@@ -88,6 +89,8 @@ void cli_cmd_exec(char* buffer)
         do_cmd_info();
     } else if (strcmp(cmd, "s_allocator") == 0) {
         do_cmd_s_allocator();
+    } else if (strcmp(cmd, "thread_tester") == 0) {
+        do_cmd_thread_tester();
     } else if (strcmp(cmd, "ls") == 0) {
         do_cmd_ls(argvs);
     } else if (strcmp(cmd, "memory_tester") == 0) {
@@ -95,8 +98,7 @@ void cli_cmd_exec(char* buffer)
     } else if (strcmp(cmd, "setTimeout") == 0) {
         char* sec = str_SepbySpace(argvs);
         do_cmd_setTimeout(argvs, sec);
-    } else if (strcmp(cmd, "set2sAlert") == 0)
-    {
+    } else if (strcmp(cmd, "set2sAlert") == 0) {
         do_cmd_set2sAlert();
     } else if (strcmp(cmd, "kmalloc") == 0){
         do_cmd_kmalloc(argvs);
@@ -113,12 +115,9 @@ void cli_cmd_exec(char* buffer)
     } else if (strcmp(cmd, "index")== 0)
     {
         do_cmd_page_idx();
-    }
-        else if (strcmp(cmd, "reboot") == 0)
-    {
+    }else if (strcmp(cmd, "reboot") == 0) {
         do_cmd_reboot();
-    }
-    else{
+    }else{
         uart_puts("Command not found! Type <help> for commands.\n\n");
     }
 }
@@ -164,7 +163,8 @@ void do_cmd_dtb()
     traverse_device_tree(dtb_ptr, dtb_callback_show_tree);
 }
 
-void do_cmd_help() {
+void do_cmd_help()
+{
     uart_puts("\r\nAvailable Commands:\r\n");
     uart_puts("====================\r\n");
 
@@ -210,16 +210,8 @@ void do_cmd_exec(char* filepath)
 
         if(strcmp(c_filepath, filepath)==0)
         {
-            //exec c_filedata
-            char* ustack = s_allocator(USTACK_SIZE);
-            asm("msr elr_el1, %0\n\t"   // elr_el1: Set the address to return to: c_filedata
-                "msr spsr_el1, xzr\n\t" // enable interrupt (PSTATE.DAIF) -> spsr_el1[9:6]=4b0. In Basic#1 sample, EL1 interrupt is disabled.
-                "msr sp_el0, %1\n\t"    // user program stack pointer set to new stack.
-                "eret\n\t"              // Perform exception return. EL1 -> EL0
-                :: "r" (c_filedata),
-                   "r" (ustack+USTACK_SIZE));
-            s_free(ustack);
-            break;
+            uart_recv_echo_flag = 0; // syscall.img has different mechanism on uart I/O.
+            exec_thread(c_filedata, c_filesize);
         }
 
         //if this is TRAILER!!! (last of file)
@@ -368,12 +360,12 @@ void do_cmd_memory_tester()
 
 void do_cmd_setTimeout(char* msg, char* sec)
 {
-    add_timer(uart_sendline,atoi(sec),msg);
+    add_timer(uart_sendline,atoi(sec),msg,0);
 }
 
 void do_cmd_set2sAlert()
 {
-    add_timer(timer_set2sAlert,2,"2sAlert");
+    add_timer(timer_set2sAlert,2,"2sAlert",0);
 }
 
 void do_cmd_kmalloc(char* size) {
@@ -388,7 +380,8 @@ void do_cmd_kmalloc(char* size) {
     uart_sendline("\n");
 }
 
-void do_cmd_kfree(char* addr) {
+void do_cmd_kfree(char* addr)
+{
     uart_puts("address: ");
     cli_cmd_read(addr);
     kfree((void*)str_to_hex(addr));
@@ -411,6 +404,7 @@ void do_cmd_page_idx()
 
 }
 
+
 void do_cmd_reboot()
 {
     uart_puts("Reboot in 5 seconds ...\r\n\r\n");
@@ -420,3 +414,11 @@ void do_cmd_reboot()
     *wdg_addr = PM_PASSWORD | 5;
 }
 
+void do_cmd_thread_tester()
+{
+    for (int i = 0; i < 5; ++i)
+    { // N should > 2
+        thread_create(foo);
+    }
+    idle();
+}

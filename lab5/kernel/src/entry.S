@@ -18,11 +18,13 @@
     stp x28, x29, [sp ,16 * 14]
     str x30, [sp, 16 * 15]
     // information for nested interrupt
-    mrs x0, spsr_el1
-    str x0, [sp, 16 * 16]
+    mrs x0, spsr_el1 //把spsr_el1讀進x0
+    str x0, [sp, 16 * 15 + 8] //把x0寫進sp
     mrs x0, elr_el1
-    str x0, [sp, 16 * 17]
-    ldp x0, x1, [sp ,16 * 0]  // restore x0 instead of elr_el1
+    str x0, [sp, 16 * 16]
+    mrs x0, sp_el0 //exec syscall.img thread的 user sp
+    str x0, [sp, 16 * 16 + 8] // sp指的是kernel sp, 在exec thread有指定
+    ldp x0, x1, [sp, 16 * 0]
 .endm
 
 // load general registers from stack
@@ -44,13 +46,16 @@
     ldp x28, x29, [sp ,16 * 14]
     ldr x30, [sp, 16 * 15]
     // information for nested interrupt
-    ldr x0, [sp, 16 * 16]
+    ldr x0, [sp, 16 * 15 + 8]
     msr spsr_el1,x0
-    ldr x0, [sp, 16 * 17]
+    ldr x0, [sp, 16 * 16]
     msr elr_el1, x0
+    ldr x0, [sp, 16 * 16 + 8]
+    msr sp_el0, x0 //當前呼叫 system call的 user process 的 user stack
     ldp x0, x1, [sp ,16 * 0]  // restore x0 instead of elr_el1
-    add sp, sp, 32 * 9
+    add sp, sp, 32 * 9 //把以上這些存進 kernel stack 形成trapframe
 .endm
+
 
 .macro    ventry    label
     .align    7   // entry should be aligned to 0x80 (2^7)
@@ -122,8 +127,8 @@ el1h_sync:
     eret
 el1h_irq:
     save_all
-    mov x0,5
-    bl el1h_irq_router
+    mov x0, sp // trapframe
+    bl irq_router
     load_all
     eret
 el1h_fiq_invalid:
@@ -141,14 +146,14 @@ el1h_error_invalid:
 
 el0_sync_64:
     save_all
-    mov x0,8
-    bl el0_sync_router
+    mov x0, sp // trapframe
+    bl sync_64_router
     load_all
     eret
 el0_irq_64:
     save_all
-    mov x0,9
-    bl el0_irq_64_router
+    mov x0, sp // trapframe
+    bl irq_router
     load_all
     eret
 el0_fiq_invalid_64:

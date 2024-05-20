@@ -234,6 +234,7 @@ int atoi(char* str)
     return res;
 }
 
+
 unsigned long str_to_hex(const char *str) {
   unsigned long result = 0;
   while (*str) {

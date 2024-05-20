@@ -4,6 +4,7 @@
 #include "uart1.h"
 #include "exception.h"
 #include "u_string.h"
+#include "scheduler.h"
 
 //implement first in first out buffer with a read index and a write index
 char uart_tx_buffer[VSPRINT_MAX_BUF_SIZE]={};
@@ -12,6 +13,9 @@ unsigned int uart_tx_buffer_ridx = 0;  //read index
 char uart_rx_buffer[VSPRINT_MAX_BUF_SIZE]={};
 unsigned int uart_rx_buffer_widx = 0;
 unsigned int uart_rx_buffer_ridx = 0;
+
+int uart_recv_echo_flag = 1;
+extern thread_t *curr_thread;
 
 void uart_init()
 {
@@ -28,7 +32,14 @@ void uart_init()
     *AUX_MU_BAUD_REG  = 270;     // 115200 baud rate
     *AUX_MU_IIR_REG   = 0xC6;    // disable FIFO
 
-    
+    /* map UART1 to GPIO pins */
+    r = *GPFSEL1;
+    r &= ~(7<<12);               // clean gpio14
+    r |= 2<<12;                  // set gpio14 to alt5
+    r &= ~(7<<15);               // clean gpio15
+    r |= 2<<15;                  // set gpio15 to alt5
+    *GPFSEL1 = r;
+
     /* enable pin 14, 15 - ref: Page 101 */
     *GPPUD = 0;
     r=150; while(r--) { asm volatile("nop"); }
@@ -37,22 +48,16 @@ void uart_init()
     *GPPUDCLK0 = 0;
 
     *AUX_MU_CNTL_REG = 3;      // enable TX/RX
-
-    /* map UART1 to GPIO pins */
-    r = *GPFSEL1;
-    r &= ~(7<<12);               // clean gpio14
-    r |= 2<<12;                  // set gpio14 to alt5
-    r &= ~(7<<15);               // clean gpio15
-    r |= 2<<15;                  // set gpio15 to alt5
-    *GPFSEL1 = r;
 }
 
 char uart_recv() {
     char r;
     while(!(*AUX_MU_LSR_REG & 0x01)){};
     r = (char)(*AUX_MU_IO_REG);
-    uart_send(r);
-    if(r =='\r') {uart_send('\r');uart_send('\n');}
+    if(uart_recv_echo_flag){
+        uart_send(r);
+        if(r =='\r') {uart_send('\r');uart_send('\n');}
+    }
     return r=='\r'?'\n':r;
 }
 
@@ -88,17 +93,17 @@ int  uart_sendline(char* fmt, ...) {
     return count;
 }
 
-
+extern thread_t* curr_thread;
 // uart_async_getc read from buffer
 // uart_r_irq_handler write to buffer then output
 char uart_async_getc() {
-    *AUX_MU_IER_REG |=1; // enable read interrupt
+    *AUX_MU_IER_REG |= 1; // enable read interrupt
     // do while if buffer empty
     while (uart_rx_buffer_ridx == uart_rx_buffer_widx) *AUX_MU_IER_REG |=1; // enable read interrupt
-    el1_interrupt_disable();
+    lock();
     char r = uart_rx_buffer[uart_rx_buffer_ridx++];
     if (uart_rx_buffer_ridx >= VSPRINT_MAX_BUF_SIZE) uart_rx_buffer_ridx = 0;
-    el1_interrupt_enable();
+    unlock();
     return r;
 }
 
@@ -108,10 +113,10 @@ char uart_async_getc() {
 void uart_async_putc(char c) {
     // if buffer full, wait for uart_w_irq_handler
     while( (uart_tx_buffer_widx + 1) % VSPRINT_MAX_BUF_SIZE == uart_tx_buffer_ridx )  *AUX_MU_IER_REG |=2;  // enable write interrupt
-    el1_interrupt_disable();
+    lock();
     uart_tx_buffer[uart_tx_buffer_widx++] = c;
     if(uart_tx_buffer_widx >= VSPRINT_MAX_BUF_SIZE) uart_tx_buffer_widx=0;  // cycle pointer
-    el1_interrupt_enable();
+    unlock();
     *AUX_MU_IER_REG |=2;  // enable write interrupt
 }
 
@@ -152,6 +157,7 @@ void uart_r_irq_handler(){
         *AUX_MU_IER_REG &= ~(1);  // disable read interrupt
         return;
     }
+    //uart_sendline(" pid %d\n", curr_thread->pid);
     uart_rx_buffer[uart_rx_buffer_widx++] = uart_recv();
     if(uart_rx_buffer_widx>=VSPRINT_MAX_BUF_SIZE) uart_rx_buffer_widx=0;
     *AUX_MU_IER_REG |=1;

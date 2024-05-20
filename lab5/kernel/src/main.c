@@ -5,9 +5,9 @@
 #include "dtb.h"
 #include "exception.h"
 #include "timer.h"
+#include "scheduler.h"
 
 char* dtb_ptr;
-extern char* _end;
 
 void main(char* arg){
     char input_buffer[CMD_MAX_LEN];
@@ -16,7 +16,6 @@ void main(char* arg){
     traverse_device_tree(dtb_ptr, dtb_callback_initramfs); // get initramfs location from dtb
 
     uart_init();
-    //uart_2hex((unsigned int)&_end);
     irqtask_list_init();
     timer_list_init();
 
@@ -24,9 +23,11 @@ void main(char* arg){
     el1_interrupt_enable();  // enable interrupt in EL1 -> EL1
     core_timer_enable();
 
+#if DEBUG
     cli_cmd_read(input_buffer); // Wait for input, Windows cannot attach to SERIAL from two processes.
-
+#endif
     init_allocator();
+    init_thread_scheduler();
 
     cli_print_banner();
     while(1){
