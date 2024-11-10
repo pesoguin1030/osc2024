@@ -1,0 +1,61 @@
+VFS (Virtual File System)
+|
++-- rootfs (mount struct)
+|   |
+|   +-- root vnode (vnode struct)
+|       |
+|       +-- f_ops (file_operations struct)
+|       +-- v_ops (vnode_operations struct)
+|       +-- internal (指向 tmpfs 的 inode)
+|       +-- mount (如果掛載了其他文件系統，這裡指向新的 mount struct)
+|       |
+|       +-- /initramfs (vnode struct for /initramfs)
+|           |
+|           +-- f_ops (file_operations struct)
+|           +-- v_ops (vnode_operations struct)
+|           +-- internal (指向 initramfs 的 inode)
+|           +-- mount (指向 initramfs 的 mount struct)
+|           |
+|           +-- /vm.img (vnode struct for /initramfs/vm.img)
+|           +-- /file0 (vnode struct for /initramfs/file0)
+|           +-- /syscall.img (vnode struct for /initramfs/syscall.img)
+|           +-- /file1.txt (vnode struct for /initramfs/file1.txt)
+|           +-- /vfs1.img (vnode struct for /initramfs/vfs1.img)
+|           +-- /example.img (vnode struct for /initramfs/example.img)
+|       |
+|       +-- /dev (vnode struct for /dev)
+|           |
+|           +-- f_ops (file_operations struct)
+|           +-- v_ops (vnode_operations struct)
+|           +-- internal (指向 tmpfs 的 inode)
+|           +-- mount (如果掛載了其他文件系統，這裡指向新的 mount struct)
+|           |
+|           +-- /uart (vnode struct for /dev/uart)
+|               |
+|               +-- f_ops (file_operations struct for UART device)
+|               +-- v_ops (vnode_operations struct for UART device)
+|               +-- internal (指向 UART 設備的 inode 或結構)
+|       |
+|       +-- /home (vnode struct for /home)
+|           |
+|           +-- f_ops (file_operations struct)
+|           +-- v_ops (vnode_operations struct)
+|           +-- internal (指向 tmpfs 的 inode)
+|           |
+|           +-- /user (vnode struct for /home/user)
+|               |
+|               +-- f_ops (file_operations struct)
+|               +-- v_ops (vnode_operations struct)
+|               +-- internal (指向 tmpfs 的 inode)
+|               |
+|               +-- /docs (vnode struct for /home/user/docs)
+|                   |
+|                   +-- f_ops (file_operations struct)
+|                   +-- v_ops (vnode_operations struct)
+|                   +-- internal (指向 tmpfs 的 inode)
+|                   +-- /file1 (vnode struct for /home/user/docs/file1)
+|                   +-- /file2 (vnode struct for /home/user/docs/file2)
+|               +-- /file3 (vnode struct for /home/user/file3)
+|           +-- /file4 (vnode struct for /home/file4)
+
+
